@@ -1,0 +1,18 @@
+Os dados utilizados para calcular as odds são divididos em: 
+
+## Parte 1: Fatores Base da Análise
+1) Dados históricos: partidas passadas, tendência de vitória em diferentes condições. 
+2) Desempenho do jogador ou time (dependendo da aposta): 
+
+## Parte 2: Fatores Externos
+1) Clima: previsão do tempo, altitude, impacto do público (jogar em casa ou não).
+2) Volume de apostas recebidas: as odds são ajustadas para balancear o mercado.
+
+Assim, as porcentagens de cada um desses casos são usadas para calcular a porcentagem implícita de vitória daquele time (ou outro). 
+Os sites de apostas ainda incluem uma margem de lucro ao ajustar as odds. 
+
+Conversão de porcentagens implícitas para odds: 
+https://www.aceodds.com/pt/calculadora/calculadora-de-odds.html
+
+Diversos fatores são combinados para calcular as odds, mas essa é a divisão. No geral, os sites utilizam dados de bancos ou até tem contado direto com especialistas de esporte para criar modelos de aprendizado de máquina que realizam as previsões. 
+Um exemplo seria, se o time A ganhou do time B 7 de 10 vezes, suas chances de ganhar aumentam. No entanto, se esse jogo for fora de casa e o time A perder 6 de 10 vezes nessas condições, suas chances diminuem. 
