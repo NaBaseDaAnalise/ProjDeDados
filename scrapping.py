@@ -51,7 +51,7 @@ team_name_to_abbreviation = {
 }
 
 teams = [
-    'ATL', 'BOS'
+    'BOS'
 ]
 teams_already_gone = []
 
@@ -80,6 +80,59 @@ def rate_limit():
         print(f"Limite de requisições atingido. Aguardando {wait_time:.2f} segundos.")
         time.sleep(wait_time)
     request_times.append(current_time)
+
+def extract_games_from_div(driver, div_id, team, year, team_name_to_abbreviation, is_playoffs):
+    
+    # Localiza o elemento div
+    div_element = driver.find_element(By.ID, div_id)
+    
+    # Localiza o elemento "Share & Export" e passa o mouse sobre ele para revelar o menu
+    share_export_element = div_element.find_element(By.XPATH, ".//span[text()='Share & Export']")
+    actions = ActionChains(driver)
+    actions.move_to_element(share_export_element).perform()
+    print(f"Mouse em cima de share & export em {div_id}")
+    time.sleep(0.3)
+
+    # Localiza o botão 'Get table as CSV (for Excel)'
+    csv_button = div_element.find_element(By.XPATH, ".//button[@tip='Convert the table below to comma-separated values<br>suitable for use with Excel']")
+    driver.execute_script("arguments[0].click();", csv_button)
+
+    print(f"Botão 'Get table as CSV' clicado com sucesso em {div_id}")
+
+    # Espera carregar o conteúdo do CSV
+    csv_string = "csv_games"
+    
+    if is_playoffs:
+        csv_string = "csv_games_playoffs"
+        
+    WebDriverWait(div_element, 10).until(EC.presence_of_element_located((By.ID,csv_string)))
+
+    # Captura o conteúdo do elemento <pre id="csv_games">
+    csv_element = div_element.find_element(By.ID, csv_string)
+    csv_content = csv_element.text
+
+    # Remove linhas desnecessárias no início do CSV
+    csv_lines = csv_content.split('\n')
+    start_index = 0
+    for i, line in enumerate(csv_lines):
+        if line.startswith("G,"):
+            start_index = i
+            break
+    csv_game_data = '\n'.join(csv_lines[start_index:])
+
+    # Adiciona as colunas "Team", "Year" e "Is_Playoffs" ao CSV
+    csv_buffer = StringIO(csv_game_data)
+    df = pd.read_csv(csv_buffer, header=0)  # Considera a primeira linha como header
+    df["Team"] = team
+    df["Year"] = year
+    df["Is_Playoffs"] = is_playoffs
+
+    # Converte a coluna 'Date' de string para um número no formato YYYYMMDD
+    df['Date'] = pd.to_datetime(df['Date'], format='%a %b %d %Y')  # Converte de 'Wed Oct 25 2023' para datetime
+    df['Date'] = df['Date'].dt.strftime('%Y%m%d')  # Formata para o número desejado
+    df['Opponent'] = df['Opponent'].map(team_name_to_abbreviation)
+
+    return df
 
 def extract_box_score_data(driver, team, df, index, url, isOpponent):
     try:
@@ -209,46 +262,22 @@ for team in teams:
         time.sleep(0.6)
             
         try:
-            # Localiza o elemento "Share & Export" e passa o mouse sobre ele para revelar o menu
-            share_export_element = driver.find_element(By.XPATH, "//span[text()='Share & Export']")
-            actions = ActionChains(driver)
-            actions.move_to_element(share_export_element).perform()
-            print(f"Mouse em cima de share & export")
-            time.sleep(0.3)
+            all_games_df = extract_games_from_div(driver, "all_games", team, year, team_name_to_abbreviation, False)
 
-            # Localizando o botão 'Get table as CSV (for Excel)' pelo atributo 'tip'
-            csv_button = driver.find_element(By.XPATH, "//button[@tip='Convert the table below to comma-separated values<br>suitable for use with Excel']")
-            driver.execute_script("arguments[0].click();", csv_button)
+            # Verifica se o elemento "all_games_playoffs" existe antes de tentar extrair dados dele
+            try:
+                all_games_playoffs_df = extract_games_from_div(driver, "all_games_playoffs", team, year, team_name_to_abbreviation, True)
+            except Exception as e:
+                print(f"Elemento 'all_games_playoffs' não encontrado: {e}")
+                all_games_playoffs_df = pd.DataFrame()  # Cria um DataFrame vazio se o elemento não for encontrado
 
-            print(f"Botão 'Get table as CSV' clicado com sucesso em {link}")
+             # Concatena os DataFrames
+            df = pd.concat([all_games_df, all_games_playoffs_df], ignore_index=True)
 
-            # Espera carregar o conteúdo do CSV
-            WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.ID, "csv_games")))
-
-            # Captura o conteúdo do elemento <pre id="csv_games">
-            csv_element = driver.find_element(By.ID, "csv_games")
-            csv_content = csv_element.text
             
-            # Remove linhas desnecessárias no início do CSV
-            csv_lines = csv_content.split('\n')
-            start_index = 0
-            for i, line in enumerate(csv_lines):
-                if line.startswith("G,"):
-                    start_index = i
-                    break
-            csv_game_data = '\n'.join(csv_lines[start_index:])
+            # Lista para armazenar os índices das linhas a serem removidas
+            rows_to_remove = []
             
-            # Adiciona as colunas "Team" e "Year" ao CSV
-            csv_buffer = StringIO(csv_game_data)  # Utiliza csv_data em vez de csv_content
-            df = pd.read_csv(csv_buffer, header=0)  # Considera a primeira linha como header
-            df["Team"] = team
-            df["Year"] = year
-
-            # Converte a coluna 'Date' de string para um número no formato YYYYMMDD
-            df['Date'] = pd.to_datetime(df['Date'], format='%a %b %d %Y')  # Converte de 'Wed Oct 25 2023' para datetime
-            df['Date'] = df['Date'].dt.strftime('%Y%m%d')  # Formata para o número desejado
-            df['Opponent'] = df['Opponent'].map(team_name_to_abbreviation)
-
             # Itera por cada linha do DataFrame
             for index, row in df.iterrows():
                 # Construir o URL dinamicamente
@@ -277,12 +306,15 @@ for team in teams:
                         
                     except Exception as e:
                         print(f"Erro ao acessar {url}: {e}")
-                
-              
+                else: 
+                    rows_to_remove.append(index)
+
 
         except Exception as e:
             print(f"Erro ao acessar {link}: {e}")
-            
+    
+    df = df.drop(rows_to_remove).reset_index(drop=True)
+
     all_data.append(df)
     teams_already_gone.append(team)
 
