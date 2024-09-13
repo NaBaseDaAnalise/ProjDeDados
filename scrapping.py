@@ -14,7 +14,7 @@ from io import StringIO
 
 # Configura o driver do Selenium (usando o Chrome)
 options = webdriver.ChromeOptions()
-options.add_argument("--headless")  # Rodar sem abrir o navegador
+# options.add_argument("--headless")  # Rodar sem abrir o navegador
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
 
 team_name_to_abbreviation = {
@@ -50,16 +50,15 @@ team_name_to_abbreviation = {
     'Washington Wizards': 'WAS'
 }
 
-teams = [
-    'BOS'
-]
+
 teams_already_gone = []
 
-# teams = [
-#     'ATL', 'BOS', 'BRK', 'CHO', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW',
-#     'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN', 'NOP', 'NYK',
-#     'OKC', 'ORL', 'PHI', 'PHO', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS'
-# ]
+teams = [
+    'NOP', 'NYK',
+    'OKC', 'ORL', 'PHI', 'PHO', 'POR', 'SAC', 'SAS', 'TOR', 'UTA', 'WAS',
+    'ATL', 'BOS', 'BRK', 'CHO', 'CHI', 'CLE', 'DAL', 'DEN', 'DET', 'GSW',
+    'HOU', 'IND', 'LAC', 'LAL', 'MEM', 'MIA', 'MIL', 'MIN'
+]
 
 # Lista para armazenar todos os DataFrames
 all_data = []
@@ -298,7 +297,7 @@ for team in teams:
                         driver.get(url)
                         print(f"Acessando: {url}")
 
-                        time.sleep(0.3)
+                        time.sleep(0.5)
                         
                         df = extract_four_factors(driver, team, opponent, index, df)
                         extract_box_score_data(driver, team, df, index, url, False)
@@ -308,12 +307,12 @@ for team in teams:
                         print(f"Erro ao acessar {url}: {e}")
                 else: 
                     rows_to_remove.append(index)
-
+            df = df.drop(rows_to_remove).reset_index(drop=True)
 
         except Exception as e:
             print(f"Erro ao acessar {link}: {e}")
     
-    df = df.drop(rows_to_remove).reset_index(drop=True)
+    
 
     all_data.append(df)
     teams_already_gone.append(team)
