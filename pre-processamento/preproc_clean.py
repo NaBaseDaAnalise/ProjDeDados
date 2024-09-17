@@ -95,10 +95,10 @@ sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
 #Alteração da tabela para ter os dados históricos:
 
 numero_linhas_anteriores = 3
+df = df.sort_values(by='Date', ascending=False)
 
-def calcular_media(team, date, current_row):
+def calcular_media(team, date):
     
-    # print(f"Valor atual de 'Team_ORB%' na linha atual: {current_row['Team_ORB%']}")
     linhas_anteriores = df[(df['Team'] == team) & (df['Date'] < date)].head(numero_linhas_anteriores)
     
     # if len(linhas_anteriores) > 0:
@@ -108,27 +108,36 @@ def calcular_media(team, date, current_row):
     # else:
     #     print("Nenhuma linha anterior encontrada para este time e data.")
     
-    linhas_completas = pd.concat([current_row, linhas_anteriores])
     
-    medias = linhas_completas[current_team_columns].mean()
+    medias = linhas_anteriores[current_team_columns].mean()
     # print(f"Média de 'Team_ORB%': {medias['Team_ORB%']}")
 
     return medias
+
+team_columns = [col for col in df.columns if 'Team' in col and pd.api.types.is_numeric_dtype(df[col])]
+opponent_columns = [col for col in df.columns if 'Opponent' in col and pd.api.types.is_numeric_dtype(df[col])]
 
 for idx, row in df.iterrows():
     team = row['Team']
     opponent = row['Opponent']
     date = row['Date']
     
-    current_team_columns = [col for col in df.columns if 'Team' in col and pd.api.types.is_numeric_dtype(df[col])]
-    medias = calcular_media(team, date, df.loc[[idx]])
+    current_team_columns = team_columns
+    medias = calcular_media(team, date)
     df.loc[idx, current_team_columns] = medias
+
     
-    current_team_columns = [col for col in df.columns if 'Opponent' in col and pd.api.types.is_numeric_dtype(df[col])]
-    medias = calcular_media(opponent, date, df.loc[[idx]])
+    current_team_columns = opponent_columns
+    medias = calcular_media(opponent, date)
     df.loc[idx, current_team_columns] = medias
-    
-    
+
+
+new_team_column_names = {col: f"Previous_{col}" for col in team_columns}
+new_opponent_column_names = {col: f"Previous_{col}" for col in opponent_columns}
+
+df.rename(columns=new_team_column_names, inplace=True)
+df.rename(columns=new_opponent_column_names, inplace=True)
+
 
 pd.set_option('display.max_columns', None)
 
