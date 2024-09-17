@@ -317,15 +317,28 @@ for team in teams:
     all_data.append(df)
     teams_already_gone.append(team)
 
-# Fecha o driver do Selenium
 driver.quit()
 
-# Combina todos os DataFrames em um único DataFrame
+file_path = 'games_data_copy.csv'
+
 if all_data:
     full_df = pd.concat(all_data, ignore_index=True)
+    
+    # Colunas a serem removidas se existirem
     cols_to_drop = ['Notes', 'LOG', 'Attend.', 'Unnamed: 8', 'Unnamed: 5', 'Unnamed: 4', 'Unnamed: 3', 'Start (ET)']
     full_df = full_df.drop(columns=[col for col in cols_to_drop if col in full_df.columns])
-    full_df.to_csv('games_data.csv', index=False)
-    print("Dados coletados e salvos com sucesso.")
+
+    # Verifica se o arquivo já existe
+    if os.path.exists(file_path):
+        # Carrega o arquivo existente
+        existing_df = pd.read_csv(file_path)
+
+        # Faz o append dos novos dados no dataframe existente
+        full_df = pd.concat([existing_df, full_df], ignore_index=True)
+    
+    # Salva os dados atualizados no arquivo CSV
+    full_df.to_csv(file_path, index=False)
+    
+    print("Dados coletados e adicionados com sucesso.")
 else:
     print("Nenhum dado foi coletado.")
