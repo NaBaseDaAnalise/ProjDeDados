@@ -1,5 +1,6 @@
 import time
 import requests
+import os
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -248,7 +249,7 @@ def extract_four_factors(driver, team, opponent, index, df):
     
 # Itera pelos URLs dos times
 for team in teams:
-    years = [2024]
+    years = [2023]
     for year in years:
         link = f"https://www.basketball-reference.com/teams/{team}/{year}_games.html"
         print(f"Acessando: {link}")  
