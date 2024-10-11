@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import LabelEncoder
 import seaborn as sns
 
 df_games = pd.read_csv('../data/games_data_22-23-24.csv').copy()
@@ -189,16 +190,32 @@ for idx, row in df_games.iterrows():
     elif row['Resultado'] == 'L':
         df_games.loc[idx, 'L'] -= 1
 
-    # Atualizar o valor de 'Streak' baseado no último confronto
+    # Filtrar os jogos anteriores
     previous_games = df_games[(df_games['Team'] == team) & (df_games['Opponent'] == opponent) & (df_games['Date'] < date)]
-    
+
     if not previous_games.empty:
-        # Obter a data mais próxima
+        # Obter o jogo mais recente
         last_game = previous_games.loc[previous_games['Date'].idxmax()]
+        
+        # Atualizar o 'Streak' baseado no último confronto
         df_games.loc[idx, 'Streak'] = last_game['Streak']
+        
+        # Selecionar os últimos 3 jogos
+        last_3_games = previous_games.nlargest(3, 'Date')
+        
+        # Calcular a média de 'Tm' e 'Opp' dos últimos 3 jogos
+        tm_mean = round(last_3_games['Tm'].mean(), 1)
+        opp_mean = round(last_3_games['Opp'].mean(), 1)
+        
+        # Atualizar os valores no DataFrame
+        df_games.loc[idx, 'Previous_Tm'] = tm_mean
+        df_games.loc[idx, 'Previous_Opp'] = opp_mean
     else:
-        # Se não houver confronto anterior, define Streak como 0
-        df_games.loc[idx, 'Streak'] = 0
+        # Se não houver confronto anterior, define 'Streak' como 0
+        df_games.loc[idx, 'Previous_Streak'] = 0
+        df_games.loc[idx, 'Previous_Tm'] = 0
+        df_games.loc[idx, 'Previous_Opp'] = 0
+
 
     # Calcular e preencher os GameScores
     print("Getting Starter Team GameScore:")
@@ -216,16 +233,26 @@ for idx, row in df_games.iterrows():
 new_team_column_names = {col: f"Previous_{col}" for col in team_columns}
 new_opponent_column_names = {col: f"Previous_{col}" for col in opponent_columns}
 
-df_games.rename(columns=new_team_column_names, inplace=True)
-df_games.rename(columns=new_opponent_column_names, inplace=True)
+# df_games.rename(columns=new_team_column_names, inplace=True)
+# df_games.rename(columns=new_opponent_column_names, inplace=True)
 
 pd.set_option('display.max_columns', None)
 
-# Remoção dos nomes dos jogadores 
+# Remoção dos nomes dos jogadores, Data e colunas atreladas ao resultado
 cols_to_drop = ['Starters_Team', 'Bench_Team', 'Starters_Opp',
-                'Bench_Opp',]
+                'Bench_Opp','Streak','Date']
 
-df_games = df_games.drop(columns=cols_to_drop)
+# df_games = df_games.drop(columns=cols_to_drop)
+
+
+# # Analisar e preencher valores faltantes apenas nas colunas numéricas
+# numeric_cols = df_games.select_dtypes(include=['float64', 'int64']).columns
+# df_games[numeric_cols] = df_games[numeric_cols].fillna(df_games[numeric_cols].mean())
+
+# # Converter as colunas categóricas 'Team' e 'Opponent' para valores numéricos
+# label_encoder = LabelEncoder()
+# df_games['Team'] = label_encoder.fit_transform(df_games['Team'])
+# df_games['Opponent'] = label_encoder.fit_transform(df_games['Opponent'])
 
 df_games.to_csv("games_data_preproc.csv", index=False)
 
