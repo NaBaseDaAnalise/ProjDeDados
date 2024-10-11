@@ -172,19 +172,35 @@ for idx, row in df_games.iterrows():
     
     # Inicializa a coluna GmSc_Starters_Team com 0.0 (float) se ainda não existir
     if 'GmSc_Starters_Team' not in df_games.columns:
-        df_games['GmSc_Starters_Team'] = 0.0  # Definir a coluna como float
+        df_games['GmSc_Starters_Team'] = 0.0
         
     if 'GmSc_Starters_Opp' not in df_games.columns:
-        df_games['GmSc_Starters_Opp'] = 0.0  # Definir a coluna como float
+        df_games['GmSc_Starters_Opp'] = 0.0
         
     if 'GmSc_Bench_Team' not in df_games.columns:
-        df_games['GmSc_Bench_Team'] = 0.0  # Definir a coluna como float
+        df_games['GmSc_Bench_Team'] = 0.0
         
     if 'GmSc_Bench_Opp' not in df_games.columns:
-        df_games['GmSc_Bench_Opp'] = 0.0  # Definir a coluna como float
+        df_games['GmSc_Bench_Opp'] = 0.0
+
+    # Atualizar valores de 'W' ou 'L'
+    if row['Resultado'] == 'W':
+        df_games.loc[idx, 'W'] -= 1
+    elif row['Resultado'] == 'L':
+        df_games.loc[idx, 'L'] -= 1
+
+    # Atualizar o valor de 'Streak' baseado no último confronto
+    previous_games = df_games[(df_games['Team'] == team) & (df_games['Opponent'] == opponent) & (df_games['Date'] < date)]
     
-   
-            
+    if not previous_games.empty:
+        # Obter a data mais próxima
+        last_game = previous_games.loc[previous_games['Date'].idxmax()]
+        df_games.loc[idx, 'Streak'] = last_game['Streak']
+    else:
+        # Se não houver confronto anterior, define Streak como 0
+        df_games.loc[idx, 'Streak'] = 0
+
+    # Calcular e preencher os GameScores
     print("Getting Starter Team GameScore:")
     imputar_gmsc_players("Starters_Team", row, idx)
     
@@ -195,7 +211,7 @@ for idx, row in df_games.iterrows():
     imputar_gmsc_players("Bench_Team", row, idx)
     
     print("Getting Bench Opponent GameScore:")
-    imputar_gmsc_players("Bench_Opp", row, idx)    
+    imputar_gmsc_players("Bench_Opp", row, idx)
 
 new_team_column_names = {col: f"Previous_{col}" for col in team_columns}
 new_opponent_column_names = {col: f"Previous_{col}" for col in opponent_columns}
