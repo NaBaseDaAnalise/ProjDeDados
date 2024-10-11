@@ -10,7 +10,7 @@ from sklearn.ensemble import RandomForestClassifier
 df = pd.read_csv('../data/games_data_preproc.csv').copy()
 
 # Remover colunas irrelevantes
-df.drop(["Date"], axis=1, inplace=True)
+df.drop(["Date","Tm","Opp"], axis=1, inplace=True)
 
 # Analisar e preencher valores faltantes apenas nas colunas numéricas
 numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
