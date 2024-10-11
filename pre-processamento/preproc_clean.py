@@ -198,7 +198,7 @@ for idx, row in df_games.iterrows():
         last_game = previous_games.loc[previous_games['Date'].idxmax()]
         
         # Atualizar o 'Streak' baseado no último confronto
-        df_games.loc[idx, 'Streak'] = last_game['Streak']
+        df_games.loc[idx, 'Previous_Streak'] = last_game['Streak']
         
         # Selecionar os últimos 3 jogos
         last_3_games = previous_games.nlargest(3, 'Date')
