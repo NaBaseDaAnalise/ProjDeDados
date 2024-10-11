@@ -233,8 +233,8 @@ for idx, row in df_games.iterrows():
 new_team_column_names = {col: f"Previous_{col}" for col in team_columns}
 new_opponent_column_names = {col: f"Previous_{col}" for col in opponent_columns}
 
-# df_games.rename(columns=new_team_column_names, inplace=True)
-# df_games.rename(columns=new_opponent_column_names, inplace=True)
+df_games.rename(columns=new_team_column_names, inplace=True)
+df_games.rename(columns=new_opponent_column_names, inplace=True)
 
 pd.set_option('display.max_columns', None)
 
@@ -242,17 +242,17 @@ pd.set_option('display.max_columns', None)
 cols_to_drop = ['Starters_Team', 'Bench_Team', 'Starters_Opp',
                 'Bench_Opp','Streak','Date']
 
-# df_games = df_games.drop(columns=cols_to_drop)
+df_games = df_games.drop(columns=cols_to_drop)
 
 
-# # Analisar e preencher valores faltantes apenas nas colunas numéricas
-# numeric_cols = df_games.select_dtypes(include=['float64', 'int64']).columns
-# df_games[numeric_cols] = df_games[numeric_cols].fillna(df_games[numeric_cols].mean())
+# Analisar e preencher valores faltantes apenas nas colunas numéricas
+numeric_cols = df_games.select_dtypes(include=['float64', 'int64']).columns
+df_games[numeric_cols] = df_games[numeric_cols].fillna(df_games[numeric_cols].mean())
 
-# # Converter as colunas categóricas 'Team' e 'Opponent' para valores numéricos
-# label_encoder = LabelEncoder()
-# df_games['Team'] = label_encoder.fit_transform(df_games['Team'])
-# df_games['Opponent'] = label_encoder.fit_transform(df_games['Opponent'])
+# Converter as colunas categóricas 'Team' e 'Opponent' para valores numéricos
+label_encoder = LabelEncoder()
+df_games['Team'] = label_encoder.fit_transform(df_games['Team'])
+df_games['Opponent'] = label_encoder.fit_transform(df_games['Opponent'])
 
 df_games.to_csv("games_data_preproc.csv", index=False)
 

@@ -1,7 +1,7 @@
 import pandas as pd
 from sklearn.model_selection import train_test_split, cross_val_score, StratifiedKFold
 from sklearn.svm import SVC
-from sklearn.preprocessing import StandardScaler, LabelEncoder
+from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.ensemble import RandomForestClassifier
 
@@ -10,16 +10,7 @@ from sklearn.ensemble import RandomForestClassifier
 df = pd.read_csv('../data/games_data_preproc.csv').copy()
 
 # Remover colunas irrelevantes
-df.drop(["Date","Tm","Opp"], axis=1, inplace=True)
-
-# Analisar e preencher valores faltantes apenas nas colunas numéricas
-numeric_cols = df.select_dtypes(include=['float64', 'int64']).columns
-df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
-
-# Converter as colunas categóricas 'Team' e 'Opponent' para valores numéricos
-label_encoder = LabelEncoder()
-df['Team'] = label_encoder.fit_transform(df['Team'])
-df['Opponent'] = label_encoder.fit_transform(df['Opponent'])
+df.drop(["Tm","Opp"], axis=1, inplace=True)
 
 # Dividir os dados em features (X) e target (y)
 X = df.drop(columns=["Resultado"])  # Exclui a coluna "Resultado"
