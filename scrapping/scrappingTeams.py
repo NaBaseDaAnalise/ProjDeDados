@@ -249,7 +249,7 @@ def extract_four_factors(driver, team, opponent, index, df):
     
 # Itera pelos URLs dos times
 for team in teams:
-    years = [2023]
+    years = [2021]
     for year in years:
         link = f"https://www.basketball-reference.com/teams/{team}/{year}_games.html"
         print(f"Acessando: {link}")  
@@ -320,7 +320,7 @@ for team in teams:
 
 driver.quit()
 
-file_path = 'games_data_copy.csv'
+file_path = 'games_data_21.csv'
 
 if all_data:
     full_df = pd.concat(all_data, ignore_index=True)

@@ -76,17 +76,65 @@ def clean(df_games):
 
     df_games.drop(columns=cols_to_drop, inplace=True)
     df_games['Streak'] = df_games['Streak'].apply(convert_streak)
-   
+
+def calcular_media(previous_values, tipo_media='simples'):
+    """
+    Calcula a média de GmSc com diferentes tipos de ponderação para várias colunas.
+    
+    Parâmetros:
+    - previous_values: DataFrame contendo os jogos anteriores.
+    - tipo_media: 'simples' para média simples, 'linear' para ponderação linear, 'quadratica' para ponderação quadrática.
+    
+    Retorna:
+    - Uma lista com a média de GmSc para cada coluna, com base no tipo de ponderação escolhido.
+    """
+    if isinstance(previous_values, pd.Series):
+        # Se for uma Série, tratar como uma única coluna
+        previous_values = previous_values.to_frame() 
+        
+    medias = []  # Lista para armazenar as médias
+
+    # Iterar sobre cada coluna do DataFrame
+    for coluna in previous_values.columns:
+        valores = previous_values[coluna].values  # Extrair os valores da coluna
+        n = len(valores)  # Número de jogos disponíveis
+        
+        # Caso seja média simples
+        if tipo_media == 'simples':
+            media = sum(valores) / n if n > 0 else 0
+            medias.append(media)  # Adicionar a média à lista
+
+        # Caso seja média ponderada linearmente
+        elif tipo_media == 'linear':
+            media_ponderada_linear = 0
+            soma_pesos = 0
+            for i in range(n):
+                peso = i + 1  # Peso é o índice + 1
+                media_ponderada_linear += valores[i] * peso
+                soma_pesos += peso
+            media = media_ponderada_linear / soma_pesos if soma_pesos > 0 else 0
+            medias.append(media)
+
+        # Caso seja média ponderada quadraticamente
+        elif tipo_media == 'quadratica':
+            media_ponderada_quadratica = 0
+            soma_pesos = 0
+            for i in range(n):
+                peso = (i + 1) ** 2  # Peso é o quadrado do índice + 1
+                media_ponderada_quadratica += valores[i] * peso
+                soma_pesos += peso
+            media = media_ponderada_quadratica / soma_pesos if soma_pesos > 0 else 0
+            medias.append(media)
+
+        # Caso o tipo de média não seja reconhecido
+        else:
+            raise ValueError("Tipo de média desconhecido. Use 'simples', 'linear' ou 'quadratica'.")
+
+    return medias  # Retornar a lista de médias
 
 
-#Alteração da tabela para ter os dados históricos:
 
-def calcular_media(team, date, df_games, current_team_columns, numero_linhas_anteriores):
-    linhas_anteriores = df_games[(df_games['Team'] == team) & (df_games['Date'] < date)].head(numero_linhas_anteriores)
-    medias = linhas_anteriores[current_team_columns].mean()
-    return medias
-
-def imputar_gmsc_players(players, row, idx, df_games, df_players, numero_linhas_anteriores):
+def imputar_gmsc_players(players, row, idx, df_games, df_players, numero_linhas_anteriores, tipo_media):
     date = row['Date']
     team_starters_gmsc = 0  # Zera o total de GmSc da equipe
     count_players = 0  # Contador para os jogadores válidos
@@ -100,11 +148,11 @@ def imputar_gmsc_players(players, row, idx, df_games, df_players, numero_linhas_
         # Converte a coluna 'Date' de player_data para o formato numérico YYYYMMDD
         player_data.loc[:, 'Date_Num'] = pd.to_datetime(player_data['Date']).dt.strftime('%Y%m%d').astype(int)
         
-        # Filtra as 3 datas anteriores mais próximas da data atual
+        # Filtra as datas anteriores mais próximas da data atual
         previous_games = player_data[player_data['Date_Num'] < date].sort_values(by='Date_Num', ascending=False).head(numero_linhas_anteriores)
         
-        # Calcula a média de GmSc dos 3 jogos
-        mean_gmsc = previous_games['GmSc'].mean()
+        # Calcula a média de GmSc dos ultimos jogos
+        mean_gmsc = calcular_media(previous_games['GmSc'], tipo_media=tipo_media)[0]
 
         # Adiciona ao total se a média não for NaN
         if not pd.isna(mean_gmsc):
@@ -116,7 +164,7 @@ def imputar_gmsc_players(players, row, idx, df_games, df_players, numero_linhas_
 
     df_games.loc[idx, f'GmSc_{players}'] = round(df_games.loc[idx, f'GmSc_{players}'] + gmsc_mean_team, 2)
 
-def previous_preproc(df_games, df_players, numero_linhas_anteriores):
+def previous_preproc(df_games, df_players, numero_linhas_anteriores, tipo_media):
     df_games.sort_values(by='Date', ascending=False)
 
     team_columns = [col for col in df_games.columns if 'Team' in col and pd.api.types.is_numeric_dtype(df_games[col])]
@@ -129,13 +177,15 @@ def previous_preproc(df_games, df_players, numero_linhas_anteriores):
         
         # Preenche as colunas das estatísticas equipe
         current_team_columns = team_columns
-        medias = calcular_media(team, date, df_games, current_team_columns, numero_linhas_anteriores)
+        linhas_anteriores = df_games[(df_games['Team'] == team) & (df_games['Date'] < date)].head(numero_linhas_anteriores)
+        medias = calcular_media(linhas_anteriores[current_team_columns],tipo_media)
         medias = [round(media, 2) for media in medias]
         df_games.loc[idx, current_team_columns] = medias
 
         # Preenche as colunas das estatísticas do oponente
         current_team_columns = opponent_columns
-        medias = calcular_media(opponent, date, df_games, current_team_columns, numero_linhas_anteriores)
+        linhas_anteriores = df_games[(df_games['Team'] == team) & (df_games['Date'] < date)].head(numero_linhas_anteriores)
+        medias = calcular_media(linhas_anteriores[current_team_columns],tipo_media)
         medias = [round(media, 2) for media in medias]
         df_games.loc[idx, current_team_columns] = medias
 
@@ -156,11 +206,13 @@ def previous_preproc(df_games, df_players, numero_linhas_anteriores):
             df_games.loc[idx, 'Previous_Streak'] = last_game['Streak']
             
             # Selecionar os últimos 3 jogos
-            last_3_games = previous_games.nlargest(numero_linhas_anteriores, 'Date')
+            last_games = previous_games.nlargest(numero_linhas_anteriores, 'Date')
             
             # Calcular a média de 'Tm' e 'Opp' dos últimos 3 jogos
-            tm_mean = round(last_3_games['Tm'].mean(), 1)
-            opp_mean = round(last_3_games['Opp'].mean(), 1)
+            tm_mean = calcular_media(last_games['Tm'],tipo_media)
+            tm_mean = round(tm_mean[0], 1)
+            opp_mean = calcular_media(last_games['Opp'],tipo_media)
+            opp_mean = round(opp_mean[0], 1)
             
             # Atualizar os valores no DataFrame
             df_games.loc[idx, 'Previous_Tm'] = tm_mean
@@ -183,16 +235,16 @@ def previous_preproc(df_games, df_players, numero_linhas_anteriores):
             
         # Calcular e preencher os GameScores
         print("Getting Starter Team GameScore:")
-        imputar_gmsc_players("Starters_Team", row, idx, df_games, df_players, numero_linhas_anteriores)
+        imputar_gmsc_players("Starters_Team", row, idx, df_games, df_players, numero_linhas_anteriores, tipo_media)
         
         print("Getting Starter Opponent GameScore:")
-        imputar_gmsc_players("Starters_Opp", row, idx, df_games, df_players, numero_linhas_anteriores)
+        imputar_gmsc_players("Starters_Opp", row, idx, df_games, df_players, numero_linhas_anteriores,tipo_media)
         
         print("Getting Bench Team GameScore:")
-        imputar_gmsc_players("Bench_Team", row, idx, df_games, df_players, numero_linhas_anteriores)
+        imputar_gmsc_players("Bench_Team", row, idx, df_games, df_players, numero_linhas_anteriores,tipo_media)
         
         print("Getting Bench Opponent GameScore:")
-        imputar_gmsc_players("Bench_Opp", row, idx, df_games, df_players, numero_linhas_anteriores)
+        imputar_gmsc_players("Bench_Opp", row, idx, df_games, df_players, numero_linhas_anteriores,tipo_media)
 
     new_team_column_names = {col: f"Previous_{col}" for col in team_columns}
     new_opponent_column_names = {col: f"Previous_{col}" for col in opponent_columns}
@@ -200,14 +252,14 @@ def previous_preproc(df_games, df_players, numero_linhas_anteriores):
     df_games.rename(columns=new_team_column_names, inplace=True)
     df_games.rename(columns=new_opponent_column_names, inplace=True)
 
-def full_preproc(numero_linhas_anteriores):
+def full_preproc(numero_linhas_anteriores, tipo_media):
         
     df_games = pd.read_csv('data/games_data_22-23-24.csv').copy()
     df_players = pd.read_csv('data/players_data.csv').copy()
 
     clean(df_games)
         
-    previous_preproc(df_games, df_players, numero_linhas_anteriores)
+    previous_preproc(df_games, df_players, numero_linhas_anteriores, tipo_media)
     
     
     # Remoção dos nomes dos jogadores, Data e colunas atreladas ao resultado e rename
