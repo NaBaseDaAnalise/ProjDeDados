@@ -32,7 +32,7 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
         raise ValueError(f"Modelo {model_name} não suportado. Escolha entre: {', '.join(models.keys())}")
 
     model = models[model_name]
-    param_file = f'modelagem/{model_name.lower()}_best_params.json'
+    param_file = f'modelagem/result_params/{model_name.lower()}_best_params.json'
 
     if not search_best_params and os.path.exists(param_file):
         with open(param_file, 'r') as f:
@@ -167,7 +167,9 @@ def classification(search_best_params):
 
     # Configuração da validação cruzada
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-
+    
+    print("\n\n----------------------------------------------\n")
+    print("Classificação para resultado da partida: \n")
     execute_model("SVM",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
     execute_model("RandomForest",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
     execute_model("KNN",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
