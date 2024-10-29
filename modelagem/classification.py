@@ -13,11 +13,12 @@ from sklearn.model_selection import GridSearchCV
 from xgboost import XGBClassifier
 from catboost import CatBoostClassifier
 import matplotlib.pyplot as plt
+import numpy as np
 
 def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test, search_best_params=False):
     models = {
         'KNN': KNeighborsClassifier(),
-        'SVM': SVC(),
+        'SVM': SVC(probability=True),
         'NeuralNetwork': MLPClassifier(max_iter=1000, random_state=42),
         'RandomForest': RandomForestClassifier(random_state=42),
         'GBT': GradientBoostingClassifier(random_state=42),
@@ -79,11 +80,54 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
                 'min_samples_leaf': [1, 2, 4]
             }
         elif model_name == 'LogisticRegression':
+            # Definindo os parâmetros que serão utilizados
             param_grid = {
-                'penalty': ['l1', 'l2', 'elasticnet', 'none'],
+                'penalty': ['l1', 'l2', 'elasticnet', None],
                 'C': [0.01, 0.1, 1, 10],
-                'solver': ['liblinear', 'saga']
+                'solver': ['liblinear', 'saga', 'newton-cg', 'sag'],
+                'l1_ratio': [0.1, 0.5, 0.9]
             }
+
+            # Filtrando combinações válidas
+            valid_param_grid = []
+            for penalty in param_grid['penalty']:
+                if penalty == 'l2':
+                    # 'liblinear', 'newton-cg', e 'sag' suportam 'l2'
+                    for C_value in param_grid['C']:
+                        for solver in ['liblinear', 'newton-cg', 'sag']:
+                            valid_param_grid.append({'penalty': [penalty], 'C': [C_value], 'solver': [solver]})
+                elif penalty == 'l1':
+                    # 'liblinear' e 'saga' suportam 'l1'
+                    for C_value in param_grid['C']:
+                        for solver in ['liblinear', 'saga']:
+                            valid_param_grid.append({'penalty': [penalty], 'C': [C_value], 'solver': [solver]})
+                elif penalty == 'elasticnet':
+                    # Apenas 'saga' suporta 'elasticnet'
+                    for C_value in param_grid['C']:
+                        for l1_ratio_value in [0.1, 0.5, 0.9]:  # Adicionando valores para 'l1_ratio'
+                            valid_param_grid.append({
+                                'penalty': [penalty],
+                                'C': [C_value],
+                                'solver': ['saga'],
+                                'l1_ratio': [l1_ratio_value]
+                            })
+                elif penalty == 'none':
+                    # 'saga' e 'newton-cg' suportam 'none'
+                    for solver in ['saga', 'newton-cg']:
+                        valid_param_grid.append({'penalty': [penalty], 'solver': [solver]})
+
+            # Convertendo para o formato esperado pelo GridSearchCV
+            param_grid = []
+            for item in valid_param_grid:
+                if item['penalty'] == ['elasticnet']:
+                    param_grid.append({'penalty': item['penalty'], 'C': item['C'], 'solver': item['solver'], 'l1_ratio': item['l1_ratio']})
+                elif 'C' in item:
+                    param_grid.append({'penalty': item['penalty'], 'C': item['C'], 'solver': item['solver']})
+                else:
+                    param_grid.append({'penalty': item['penalty'], 'solver': item['solver']})
+
+
+
         elif model_name == 'AdaBoost':
             param_grid = {
                 'n_estimators': [50, 100, 200],
@@ -115,21 +159,29 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
 
         grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=cv, scoring='accuracy', n_jobs=-1, verbose=2)
         grid_search.fit(X_train_scaled, y_train)
+        # visualize_grid_search(grid_search)
         best_params = grid_search.best_params_
+        
+        # Convert cv_results_ to a JSON serializable dictionary
+        cv_results_serializable = {}
+        for key, value in grid_search.cv_results_.items():
+            # Convert numpy arrays to lists
+            if isinstance(value, np.ndarray):
+                cv_results_serializable[key] = value.tolist()
+            else:
+                cv_results_serializable[key] = value
 
+        # Save the converted cv_results_ dictionary to JSON
+        with open(f"modelagem/result_gsearch/{model_name.lower()}_grid_search.json", 'w') as f:
+            json.dump(cv_results_serializable, f, indent=4)
+
+            
         with open(param_file, 'w') as f:
             json.dump(best_params, f)
 
         model.set_params(**best_params)
 
-    scores = cross_val_score(model, X_train_scaled, y_train, cv=cv, scoring='accuracy')
-    print(f"{model_name} - Acurácia média com validação cruzada (treino): {scores.mean():.4f}")
-    print(f"{model_name} - Desvio padrão da acurácia (treino): {scores.std():.4f}")
-
-    model.fit(X_train_scaled, y_train)
-    y_pred = model.predict(X_test_scaled)
-    print(f"\n{model_name} - Acurácia no conjunto de teste:", accuracy_score(y_test, y_pred))
-    print(f"\n{model_name} - Relatório de classificação no conjunto de teste:\n", classification_report(y_test, y_pred))
+    return (model, best_params)
 
 def visualize_grid_search(grid_search):
     # Obter os resultados da grid search
@@ -147,6 +199,24 @@ def visualize_grid_search(grid_search):
     plt.title('Resultados do Grid Search para SVM')
     plt.show()
 
+def save_metrics(model_names, mean_accuracies, test_accuracies, best_params):
+    # Collect metrics into a list of dictionaries
+    metrics = []
+    for i, model_name in enumerate(model_names):
+        metrics.append({
+            "Model": model_name,
+            "Mean_CV_Accuracy": mean_accuracies[i],
+            "Test_Accuracy": test_accuracies[i],
+            "Best_Parameters": best_params[i]
+        })
+
+    # Save metrics to a JSON file
+    metrics_file = 'modelagem/metrics/classification_metrics.json'
+    with open(metrics_file, 'w') as f:
+        json.dump(metrics, f, indent=4)
+        
+    print(f"Métricas salvas no arquivo {metrics_file}.")
+    
 def classification(search_best_params):
     df = pd.read_csv('pre_processamento/games_data_preproc.csv').copy()
 
@@ -167,16 +237,46 @@ def classification(search_best_params):
 
     # Configuração da validação cruzada
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    
+    model_names = ["RandomForest","KNN","NeuralNetwork","GBT","LogisticRegression","AdaBoost","ExtraTrees","XGBoost","CatBoost"]
+    models = []
+    params = []
+    mean_accuracies = []
+    test_accuracies = []
+    best_model_accuracy = 0
+    best_model = KNeighborsClassifier()
+
     print("\n\n----------------------------------------------\n")
     print("Classificação para resultado da partida: \n")
-    execute_model("SVM",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-    execute_model("RandomForest",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-    execute_model("KNN",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-    execute_model("NeuralNetwork",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-    execute_model("GBT",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-    execute_model("LogisticRegression",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-    execute_model("AdaBoost",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-    execute_model("ExtraTrees",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-    execute_model("XGBoost",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-    execute_model("CatBoost",cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
+    
+    for name in model_names:
+        (model, best_params) = execute_model(name,cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
+        models.append(model)
+        params.append(best_params)
+    
+    for i, model in enumerate(models):
+        score = cross_val_score(model, X_train_scaled, y_train, cv=cv, scoring='accuracy')
+        print(f"{model_names[i]} - Acurácia média com validação cruzada (treino): {score.mean():.4f}")
+        print(f"{model_names[i]} - Desvio padrão da acurácia (treino): {score.std():.4f}")
+
+        if score.mean() > best_model_accuracy:
+            best_model = model
+            
+        model.fit(X_train_scaled, y_train)
+        y_pred = model.predict(X_test_scaled)
+        test_accuracy = accuracy_score(y_test, y_pred)
+        print(f"\n{model_names[i]} - Acurácia no conjunto de teste:", test_accuracy)
+        print(f"\n{model_names[i]} - Relatório de classificação no conjunto de teste:\n", classification_report(y_test, y_pred))
+    
+        mean_accuracies.append(score.mean())
+        test_accuracies.append(test_accuracy)
+
+    save_metrics(model_names,mean_accuracies,test_accuracies, params)
+
+    # if hasattr(best_model, "predict_proba"):
+    #     y_pred = best_model.predict(X_test_scaled)
+    #     y_pred_proba = best_model.predict_proba(X_test_scaled)
+    #     # Exemplo de como exibir as probabilidades de vitória (classe 1) e derrota (classe 0)
+    #     for i in range(len(y_pred)):
+    #         print(f"Exemplo {i+1} - Probabilidade de vitória: {y_pred_proba[i][1]:.4f}, Probabilidade de derrota: {y_pred_proba[i][0]:.4f}")
+    # else:
+    #     print(f"O modelo melohr modelo não suporta predição de probabilidade.")
