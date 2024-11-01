@@ -1,1 +1,1 @@
-{"alpha": 10, "solver": "auto"}
+{"alpha": 1, "solver": "lsqr"}

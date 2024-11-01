@@ -5,6 +5,7 @@ from sklearn.model_selection import train_test_split, cross_val_score, Stratifie
 from sklearn.svm import SVC
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, classification_report
+from sklearn.metrics import confusion_matrix
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, AdaBoostClassifier, ExtraTreesClassifier
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
@@ -13,7 +14,9 @@ from sklearn.model_selection import GridSearchCV
 from xgboost import XGBClassifier
 from catboost import CatBoostClassifier
 import matplotlib.pyplot as plt
+import seaborn as sns
 import numpy as np
+
 
 def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test, search_best_params=False):
     models = {
@@ -216,7 +219,79 @@ def save_metrics(model_names, mean_accuracies, test_accuracies, best_params):
         json.dump(metrics, f, indent=4)
         
     print(f"Métricas salvas no arquivo {metrics_file}.")
+
+def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, search_best_params):
+    # Configuração da validação cruzada
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    model_names = ["RandomForest","KNN","NeuralNetwork","GBT","LogisticRegression","AdaBoost","ExtraTrees","XGBoost","CatBoost"]
+    models = []
+    params = []
+    mean_accuracies = []
+    test_accuracies = []
+    best_model_metrics = {}
+    best_model_accuracy = 0
+    best_model = KNeighborsClassifier()
     
+    print("\n\n----------------------------------------------\n")
+    print("Classificação para resultado da partida: \n")
+    
+    for name in model_names:
+        (model, best_params) = execute_model(name,cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
+        models.append(model)
+        params.append(best_params)
+
+    # Loop para treinar e avaliar os modelos
+    for i, model in enumerate(models):
+        score = cross_val_score(model, X_train_scaled, y_train, cv=cv, scoring='accuracy')
+        mean_accuracy = score.mean()
+        std_accuracy = score.std()
+        print(f"{model_names[i]} - Acurácia média com validação cruzada (treino): {mean_accuracy:.4f}")
+        print(f"{model_names[i]} - Desvio padrão da acurácia (treino): {std_accuracy:.4f}")
+
+        # Avaliação no conjunto de teste
+        model.fit(X_train_scaled, y_train)
+        y_pred = model.predict(X_test_scaled)
+        test_accuracy = accuracy_score(y_test, y_pred)
+        print(f"\n{model_names[i]} - Acurácia no conjunto de teste:", test_accuracy)
+        classification_rep = classification_report(y_test, y_pred, output_dict=True)  # Gera o relatório como dicionário
+        print(f"\n{model_names[i]} - Relatório de classificação no conjunto de teste:\n", classification_report(y_test, y_pred))
+
+        # Atualiza métricas se for o melhor modelo até agora
+        if mean_accuracy > best_model_accuracy:
+            best_model_accuracy = mean_accuracy
+            best_model = model
+            best_model_metrics = {
+                "model_name": model_names[i],
+                "train_mean_accuracy": mean_accuracy,
+                "train_std_accuracy": std_accuracy,
+                "test_accuracy": test_accuracy,
+                "classification_report": classification_rep
+            }
+
+        # Salva as métricas em listas
+        mean_accuracies.append(mean_accuracy)
+        test_accuracies.append(test_accuracy)
+        
+    y_pred_best = best_model.predict(X_test_scaled)
+    conf_matrix = confusion_matrix(y_test, y_pred_best)
+
+    # Configuração do gráfico da matriz de confusão
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", cbar=False,
+                xticklabels=["Classe 0", "Classe 1"], yticklabels=["Classe 0", "Classe 1"])
+    plt.xlabel("Predicted Labels")
+    plt.ylabel("True Labels")
+    plt.title(f"Matriz de Confusão - Melhor Modelo: {best_model_metrics['model_name']}")
+
+    # Salva o gráfico
+    plt.tight_layout()
+    plt.savefig("results/best_model_confusion_matrix.png")
+    
+    # Salva o dicionário de métricas do melhor modelo em um arquivo JSON
+    with open('modelagem/metrics/best_model_classification.json', 'w') as json_file:
+        json.dump(best_model_metrics, json_file, indent=4)
+    save_metrics(model_names,mean_accuracies,test_accuracies, params)
+
 def classification(search_best_params):
     df = pd.read_csv('pre_processamento/games_data_preproc.csv').copy()
 
@@ -234,44 +309,9 @@ def classification(search_best_params):
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
-
-    # Configuração da validação cruzada
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    model_names = ["RandomForest","KNN","NeuralNetwork","GBT","LogisticRegression","AdaBoost","ExtraTrees","XGBoost","CatBoost"]
-    models = []
-    params = []
-    mean_accuracies = []
-    test_accuracies = []
-    best_model_accuracy = 0
-    best_model = KNeighborsClassifier()
-
-    print("\n\n----------------------------------------------\n")
-    print("Classificação para resultado da partida: \n")
     
-    for name in model_names:
-        (model, best_params) = execute_model(name,cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
-        models.append(model)
-        params.append(best_params)
+    predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test,search_best_params)
     
-    for i, model in enumerate(models):
-        score = cross_val_score(model, X_train_scaled, y_train, cv=cv, scoring='accuracy')
-        print(f"{model_names[i]} - Acurácia média com validação cruzada (treino): {score.mean():.4f}")
-        print(f"{model_names[i]} - Desvio padrão da acurácia (treino): {score.std():.4f}")
-
-        if score.mean() > best_model_accuracy:
-            best_model = model
-            
-        model.fit(X_train_scaled, y_train)
-        y_pred = model.predict(X_test_scaled)
-        test_accuracy = accuracy_score(y_test, y_pred)
-        print(f"\n{model_names[i]} - Acurácia no conjunto de teste:", test_accuracy)
-        print(f"\n{model_names[i]} - Relatório de classificação no conjunto de teste:\n", classification_report(y_test, y_pred))
-    
-        mean_accuracies.append(score.mean())
-        test_accuracies.append(test_accuracy)
-
-    save_metrics(model_names,mean_accuracies,test_accuracies, params)
-
     # if hasattr(best_model, "predict_proba"):
     #     y_pred = best_model.predict(X_test_scaled)
     #     y_pred_proba = best_model.predict_proba(X_test_scaled)

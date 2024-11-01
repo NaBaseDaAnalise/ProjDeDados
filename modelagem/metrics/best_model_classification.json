@@ -1,0 +1,33 @@
+{
+    "model_name": "XGBoost",
+    "train_mean_accuracy": 0.6663206166455264,
+    "train_std_accuracy": 0.021506959783928848,
+    "test_accuracy": 0.6669470142977292,
+    "classification_report": {
+        "0": {
+            "precision": 0.6547987616099071,
+            "recall": 0.709731543624161,
+            "f1-score": 0.6811594202898551,
+            "support": 596.0
+        },
+        "1": {
+            "precision": 0.6813996316758748,
+            "recall": 0.6239460370994941,
+            "f1-score": 0.6514084507042254,
+            "support": 593.0
+        },
+        "accuracy": 0.6669470142977292,
+        "macro avg": {
+            "precision": 0.668099196642891,
+            "recall": 0.6668387903618276,
+            "f1-score": 0.6662839354970402,
+            "support": 1189.0
+        },
+        "weighted avg": {
+            "precision": 0.6680656379338086,
+            "recall": 0.6669470142977292,
+            "f1-score": 0.6663214682593434,
+            "support": 1189.0
+        }
+    }
+}
