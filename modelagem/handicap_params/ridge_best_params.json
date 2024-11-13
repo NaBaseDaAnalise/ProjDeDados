@@ -1,1 +1,1 @@
-{"alpha": 10, "solver": "auto"}
+{"alpha": 10, "solver": "svd"}

@@ -251,7 +251,7 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, search_b
     print(f"Métricas salvas no arquivo {metrics_file}.")
     
 def regresssion(search_best_params, target):
-    df = pd.read_csv('pre_processamento/games_data_preproc.csv').copy()
+    df = pd.read_csv('pre_processamento/games_data_preproc_final.csv').copy()
     
     if target == "handicap":
         df_handicap = calculate_handicap(df)

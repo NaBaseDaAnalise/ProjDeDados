@@ -149,7 +149,7 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
     print(f"R² score: {r2_score(y_test, y_pred):.4f}")
 
 def pred_total_points(search_best_params):
-    df = pd.read_csv('pre_processamento/games_data_preproc.csv').copy()
+    df = pd.read_csv('pre_processamento/games_data_preproc_final.csv').copy()
     df = calculate_total_points(df)
     
     # Remover colunas irrelevantes

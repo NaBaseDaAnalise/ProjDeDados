@@ -1,81 +1,10 @@
 import pandas as pd
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
+from sklearn.decomposition import PCA
 import seaborn as sns
-
-def filter_empty(players):
-    return [player for player in players if pd.notna(player)]
-    
-#Conversão do valor da coluna Streak
-def convert_streak(streak):
-    if pd.isna(streak):
-        return streak
-    streak_type, streak_num = streak.split()
-    streak_num = int(streak_num)
-    if streak_type == 'W':
-        return streak_num
-    elif streak_type == 'L':
-        return -streak_num
-    
-def clean(df_games):
-    #Remoção de valores sujos nos jogadores
-    cols_to_check = [
-        'Team_Player1_Starters', 'Team_Player2_Starters', 'Team_Player3_Starters',
-        'Team_Player4_Starters', 'Team_Player5_Starters', 'Team_Player6_Starters',
-        'Team_Player7_Starters', 'Team_Player8_Starters', 'Team_Player9_Starters',
-        'Team_Player10_Starters', 'Team_Player11_Starters', 'Team_Player12_Starters',
-        'Team_Player13_Starters', 'Team_Player14_Starters', 'Opponent_Player1_Starters',
-        'Opponent_Player2_Starters', 'Opponent_Player3_Starters', 'Opponent_Player4_Starters',
-        'Opponent_Player5_Starters', 'Opponent_Player6_Starters', 'Opponent_Player7_Starters',
-        'Opponent_Player8_Starters', 'Opponent_Player9_Starters', 'Opponent_Player10_Starters',
-        'Opponent_Player11_Starters', 'Opponent_Player12_Starters', 'Opponent_Player13_Starters',
-        'Opponent_Player14_Starters', 'Opponent_Player15_Starters', 'Opponent_Player16_Starters',
-        'Team_Player15_Starters', 'Team_Player16_Starters', 'Opponent_Player17_Starters',
-        'Opponent_Player18_Starters', 'Team_Player17_Starters', 'Team_Player18_Starters',
-        'Team_Player19_Starters'
-    ]
-
-    df_games[cols_to_check] = df_games[cols_to_check].replace('Team Totals', pd.NA)
-    
-    df_games.rename(columns={'Unnamed: 7': 'Resultado'}, inplace=True)
-
-        
-    #Agrupamento dos jogadores
-    df_games['Starters_Team'] = df_games[['Team_Player1_Starters', 'Team_Player2_Starters', 'Team_Player3_Starters',
-                                        'Team_Player4_Starters', 'Team_Player5_Starters']].apply(filter_empty, axis=1)
-
-    df_games['Bench_Team'] = df_games[['Team_Player6_Starters', 'Team_Player7_Starters', 'Team_Player8_Starters',
-                                    'Team_Player9_Starters', 'Team_Player10_Starters', 'Team_Player11_Starters',
-                                    'Team_Player12_Starters', 'Team_Player13_Starters', 'Team_Player14_Starters',
-                                    'Team_Player15_Starters', 'Team_Player16_Starters', 'Team_Player17_Starters',
-                                    'Team_Player18_Starters', 'Team_Player19_Starters']].apply(filter_empty, axis=1)
-
-    df_games['Starters_Opp'] = df_games[['Opponent_Player1_Starters', 'Opponent_Player2_Starters',
-                                        'Opponent_Player3_Starters', 'Opponent_Player4_Starters',
-                                        'Opponent_Player5_Starters']].apply(filter_empty, axis=1)
-
-    df_games['Bench_Opp'] = df_games[['Opponent_Player6_Starters', 'Opponent_Player7_Starters', 'Opponent_Player8_Starters',
-                                    'Opponent_Player9_Starters', 'Opponent_Player10_Starters', 'Opponent_Player11_Starters',
-                                    'Opponent_Player12_Starters', 'Opponent_Player13_Starters', 'Opponent_Player14_Starters',
-                                    'Opponent_Player15_Starters', 'Opponent_Player16_Starters', 'Opponent_Player17_Starters',
-                                    'Opponent_Player18_Starters']].apply(filter_empty, axis=1)
-
-    cols_to_drop = ['Team_Player1_Starters', 'Team_Player2_Starters', 'Team_Player3_Starters',
-                    'Team_Player4_Starters', 'Team_Player5_Starters', 'Team_Player6_Starters',
-                    'Team_Player7_Starters', 'Team_Player8_Starters', 'Team_Player9_Starters',
-                    'Team_Player10_Starters', 'Team_Player11_Starters', 'Team_Player12_Starters',
-                    'Team_Player13_Starters', 'Team_Player14_Starters', 'Team_Player15_Starters',
-                    'Team_Player16_Starters', 'Team_Player17_Starters', 'Team_Player18_Starters',
-                    'Team_Player19_Starters', 'Opponent_Player1_Starters', 'Opponent_Player2_Starters',
-                    'Opponent_Player3_Starters', 'Opponent_Player4_Starters', 'Opponent_Player5_Starters',
-                    'Opponent_Player6_Starters', 'Opponent_Player7_Starters', 'Opponent_Player8_Starters',
-                    'Opponent_Player9_Starters', 'Opponent_Player10_Starters', 'Opponent_Player11_Starters',
-                    'Opponent_Player12_Starters', 'Opponent_Player13_Starters', 'Opponent_Player14_Starters',
-                    'Opponent_Player15_Starters', 'Opponent_Player16_Starters', 'Opponent_Player17_Starters',
-                    'Opponent_Player18_Starters']
-
-    df_games.drop(columns=cols_to_drop, inplace=True)
-    df_games['Streak'] = df_games['Streak'].apply(convert_streak)
+import ast
+import numpy as np
 
 def calcular_media(previous_values, tipo_media='simples'):
     """
@@ -132,44 +61,69 @@ def calcular_media(previous_values, tipo_media='simples'):
 
     return medias  # Retornar a lista de médias
 
-
-
-def imputar_gmsc_players(players, row, idx, df_games, df_players, numero_linhas_anteriores, tipo_media):
+def imputar_gmsc_players(players, row, idx, df_games, df_players, numero_linhas_anteriores, tipo_media, pca_players, pca_columns, pca_weights, pca):
     date = row['Date']
-    team_starters_gmsc = 0  # Zera o total de GmSc da equipe
+    team_players_score = 0  # Zera o total de GmSc da equipe
     count_players = 0  # Contador para os jogadores válidos
-
-    # Converte a data para o formato numérico YYYYMMDD
-
-    for player in row[players]:
+    
+    for player in ast.literal_eval(row[players]):
         # Filtra os dados do jogador na base df_players
-        player_data = df_players[df_players['Player'] == player].copy()  # Evitar problemas com SettingWithCopyWarning
-        
-        # Converte a coluna 'Date' de player_data para o formato numérico YYYYMMDD
-        player_data.loc[:, 'Date_Num'] = pd.to_datetime(player_data['Date']).dt.strftime('%Y%m%d').astype(int)
+        player_data = df_players[df_players['Player'] == player].copy()
         
         # Filtra as datas anteriores mais próximas da data atual
-        previous_games = player_data[player_data['Date_Num'] < date].sort_values(by='Date_Num', ascending=False).head(numero_linhas_anteriores)
-        
-        # Calcula a média de GmSc dos ultimos jogos
-        mean_gmsc = calcular_media(previous_games['GmSc'], tipo_media=tipo_media)[0]
+        previous_games = player_data[player_data['Date_Num'] < date].head(numero_linhas_anteriores)
 
-        # Adiciona ao total se a média não for NaN
-        if not pd.isna(mean_gmsc):
-            team_starters_gmsc += mean_gmsc
-            count_players += 1
+        if pca_players:
+            # Passo 2: Se tiver múltiplas linhas, aplica PCA normalmente
+            if len(previous_games[pca_columns]) > 1:
+                pca_values = pca.transform(previous_games[pca_columns])
+                mean_pca = pca_values.mean()  # ou qualquer outra métrica desejada
+               
+            elif len(previous_games[pca_columns]) == 1:
+                # Passo 3: Se tiver apenas uma linha, use os pesos pré-calculados para fazer uma projeção
+                single_line = previous_games[pca_columns].iloc[0].values
+                mean_pca = np.dot(single_line, pca_weights)  # Projeção da linha pelos pesos pré-calculados       
+
+            # Verifica se o resultado não é NaN e atualiza a pontuação da equipe
+            if  len(previous_games[pca_columns]) != 0:
+                team_players_score += mean_pca
+                count_players += 1
+            
+        else: 
+                    
+            # Calcula a média de GmSc dos ultimos jogos
+            mean_gmsc = calcular_media(previous_games['GmSc'], tipo_media=tipo_media)[0]
+            
+            # Adiciona ao total se a média não for NaN
+            if not pd.isna(mean_gmsc):
+                team_players_score += mean_gmsc
+                count_players += 1
 
     # Calcula a média de GmSc dos jogadores titulares da equipe
-    gmsc_mean_team = team_starters_gmsc / count_players if count_players > 0 else 0
+    gmsc_mean_team = team_players_score / count_players if count_players > 0 else 0
 
-    df_games.loc[idx, f'GmSc_{players}'] = round(df_games.loc[idx, f'GmSc_{players}'] + gmsc_mean_team, 2)
+    df_games.loc[idx, f'Score_{players}'] = round(df_games.loc[idx, f'Score_{players}'] + gmsc_mean_team, 2)
 
-def previous_preproc(df_games, df_players, numero_linhas_anteriores, tipo_media):
+def previous_preproc(df_games, df_players, numero_linhas_anteriores, tipo_media, pca_players):
     df_games.sort_values(by='Date', ascending=False)
 
     team_columns = [col for col in df_games.columns if 'Team' in col and pd.api.types.is_numeric_dtype(df_games[col])]
     opponent_columns = [col for col in df_games.columns if 'Opponent' in col and pd.api.types.is_numeric_dtype(df_games[col])]
 
+    # Converte a data para o formato numérico YYYYMMDD
+    pca_columns = ['MP', 'FG', 'FGA', 'FG%', '3P', '3PA', '3P%', 'FT', 'FTA', 'FT%', 
+                   'ORB', 'DRB', 'TRB', 'AST', 'STL', 'BLK', 'TOV', 'PF', 'PTS', 'GmSc', '+/-']
+    
+    
+    # Passo 1: Calcule os pesos do primeiro componente principal usando um dataset histórico
+    pca = PCA(n_components=1)
+    pca.fit(df_players[pca_columns])  # Ajusta o PCA com dados históricos
+    pca_weights = pca.components_[0]  # Obtenha os pesos do primeiro componente
+    
+    # Converte a coluna 'Date' de df_players para o formato numérico YYYYMMDD e coloca em ordem de data
+    df_players.loc[:, 'Date_Num'] = pd.to_datetime(df_players['Date']).dt.strftime('%Y%m%d').astype(int)
+    df_players.sort_values(by='Date_Num', ascending=False)
+    
     for idx, row in df_games.iterrows():
         team = row['Team']
         opponent = row['Opponent']
@@ -224,27 +178,27 @@ def previous_preproc(df_games, df_players, numero_linhas_anteriores, tipo_media)
             df_games.loc[idx, 'Previous_Opp'] = 0
 
         # Inicializa a coluna GmSc_Starters_Team com 0.0 (float) se ainda não existir
-        if 'GmSc_Starters_Team' not in df_games.columns:
-            df_games['GmSc_Starters_Team'] = 0.0
-        if 'GmSc_Starters_Opp' not in df_games.columns:
-            df_games['GmSc_Starters_Opp'] = 0.0
-        if 'GmSc_Bench_Team' not in df_games.columns:
-            df_games['GmSc_Bench_Team'] = 0.0
-        if 'GmSc_Bench_Opp' not in df_games.columns:
-            df_games['GmSc_Bench_Opp'] = 0.0
+        if 'Score_Starters_Team' not in df_games.columns:
+            df_games['Score_Starters_Team'] = 0.0
+        if 'Score_Starters_Opp' not in df_games.columns:
+            df_games['Score_Starters_Opp'] = 0.0
+        if 'Score_Bench_Team' not in df_games.columns:
+            df_games['Score_Bench_Team'] = 0.0
+        if 'Score_Bench_Opp' not in df_games.columns:
+            df_games['Score_Bench_Opp'] = 0.0
             
         # Calcular e preencher os GameScores
         print("Getting Starter Team GameScore:")
-        imputar_gmsc_players("Starters_Team", row, idx, df_games, df_players, numero_linhas_anteriores, tipo_media)
+        imputar_gmsc_players("Starters_Team", row, idx, df_games, df_players, numero_linhas_anteriores, tipo_media, pca_players, pca_columns, pca_weights, pca)
         
         print("Getting Starter Opponent GameScore:")
-        imputar_gmsc_players("Starters_Opp", row, idx, df_games, df_players, numero_linhas_anteriores,tipo_media)
+        imputar_gmsc_players("Starters_Opp", row, idx, df_games, df_players, numero_linhas_anteriores,tipo_media, pca_players, pca_columns, pca_weights, pca)
         
         print("Getting Bench Team GameScore:")
-        imputar_gmsc_players("Bench_Team", row, idx, df_games, df_players, numero_linhas_anteriores,tipo_media)
+        imputar_gmsc_players("Bench_Team", row, idx, df_games, df_players, numero_linhas_anteriores,tipo_media, pca_players, pca_columns, pca_weights, pca)
         
         print("Getting Bench Opponent GameScore:")
-        imputar_gmsc_players("Bench_Opp", row, idx, df_games, df_players, numero_linhas_anteriores,tipo_media)
+        imputar_gmsc_players("Bench_Opp", row, idx, df_games, df_players, numero_linhas_anteriores,tipo_media, pca_players, pca_columns, pca_weights, pca)
 
     new_team_column_names = {col: f"Previous_{col}" for col in team_columns}
     new_opponent_column_names = {col: f"Previous_{col}" for col in opponent_columns}
@@ -252,15 +206,13 @@ def previous_preproc(df_games, df_players, numero_linhas_anteriores, tipo_media)
     df_games.rename(columns=new_team_column_names, inplace=True)
     df_games.rename(columns=new_opponent_column_names, inplace=True)
 
-def full_preproc(numero_linhas_anteriores, tipo_media):
-        
-    df_games = pd.read_csv('data/games_data_22-23-24.csv').copy()
-    df_players = pd.read_csv('data/players_data.csv').copy()
 
-    clean(df_games)
+def full_preproc(numero_linhas_anteriores, tipo_media, pca_players):
         
-    previous_preproc(df_games, df_players, numero_linhas_anteriores, tipo_media)
-    
+    df_games = pd.read_csv('data/cleaned_games_data_22-23-24.csv').copy()
+    df_players = pd.read_csv('data/players_data.csv').copy()
+        
+    previous_preproc(df_games, df_players, numero_linhas_anteriores, tipo_media, pca_players)
     
     # Remoção dos nomes dos jogadores, Data e colunas atreladas ao resultado e rename
     cols_to_drop = ['Starters_Team', 'Bench_Team', 'Starters_Opp',

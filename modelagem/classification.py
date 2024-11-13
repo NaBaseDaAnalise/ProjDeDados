@@ -177,14 +177,18 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
         # Save the converted cv_results_ dictionary to JSON
         with open(f"modelagem/result_gsearch/{model_name.lower()}_grid_search.json", 'w') as f:
             json.dump(cv_results_serializable, f, indent=4)
-
             
         with open(param_file, 'w') as f:
             json.dump(best_params, f)
-
+            
+        # Extrai os parâmetros e a acurácia média do grid_search.cv_results_
+        params_list = grid_search.cv_results_['params']
+        mean_scores = grid_search.cv_results_['mean_test_score']
+        
+        
         model.set_params(**best_params)
 
-    return (model, best_params)
+    return (model, best_params, params_list, mean_scores)
 
 def visualize_grid_search(grid_search):
     # Obter os resultados da grid search
@@ -220,12 +224,12 @@ def save_metrics(model_names, mean_accuracies, test_accuracies, best_params):
         
     print(f"Métricas salvas no arquivo {metrics_file}.")
 
-def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, search_best_params):
+def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experimentation_plan_data, search_best_params):
     # Configuração da validação cruzada
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     model_names = ["RandomForest","KNN","NeuralNetwork","GBT","LogisticRegression","AdaBoost","ExtraTrees","XGBoost","CatBoost"]
     models = []
-    params = []
+    best_params = []
     mean_accuracies = []
     test_accuracies = []
     best_model_metrics = {}
@@ -236,9 +240,18 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, search_b
     print("Classificação para resultado da partida: \n")
     
     for name in model_names:
-        (model, best_params) = execute_model(name,cv, X_train_scaled, X_test_scaled, y_train, y_test,search_best_params=search_best_params)
+        (model, model_best_params, params_list, mean_scores) = execute_model(name,cv, X_train_scaled, X_test_scaled, y_train, y_test, search_best_params)
         models.append(model)
-        params.append(best_params)
+        best_params.append(model_best_params)
+    
+        # Prepara uma lista de dicionários para o DataFrame
+        for params, score in zip(params_list, mean_scores):
+            experimentation_plan_data.append({
+                "Target": "Resultado da Partida",
+                "Modelo": name,
+                "Parâmetros": params,
+                "Acurácia média (Validação Cruzada)": score
+            })
 
     # Loop para treinar e avaliar os modelos
     for i, model in enumerate(models):
@@ -290,10 +303,10 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, search_b
     # Salva o dicionário de métricas do melhor modelo em um arquivo JSON
     with open('modelagem/metrics/best_model_classification.json', 'w') as json_file:
         json.dump(best_model_metrics, json_file, indent=4)
-    save_metrics(model_names,mean_accuracies,test_accuracies, params)
+    save_metrics(model_names,mean_accuracies,test_accuracies, best_params)
 
-def classification(search_best_params):
-    df = pd.read_csv('pre_processamento/games_data_preproc.csv').copy()
+def classification(numero_linhas_anteriores, tipo_media, pca_players, pca_team_stats, search_best_params):
+    df = pd.read_csv('pre_processamento/games_data_preproc_final.csv').copy()
 
     # Remover colunas irrelevantes
     df.drop(["Tm", "Opp"], axis=1, inplace=True)
@@ -310,8 +323,21 @@ def classification(search_best_params):
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
-    predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test,search_best_params)
+    experimentation_plan_data = []
+    predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experimentation_plan_data, search_best_params)
     
+     # Converte para DataFrame e salva em CSV
+    experimentation_plan_df = pd.DataFrame(experimentation_plan_data)
+    
+    # Adiciona três novas colunas com valores determinados (espaço para você preencher)
+    experimentation_plan_df["numero_linhas_anteriores"] = numero_linhas_anteriores  # Coloque o valor desejado aqui
+    experimentation_plan_df["tipo_media"] = tipo_media  # Coloque o valor desejado aqui
+    experimentation_plan_df["pca_players"] = pca_players  # Coloque o valor desejado aqui
+    experimentation_plan_df["pca_team_stats"] = pca_team_stats  # Coloque o valor desejado aqui
+
+
+    experimentation_plan_df.to_csv(f"modelagem/plano_experimentacao/classification_plan.csv", index=False)
+
     # if hasattr(best_model, "predict_proba"):
     #     y_pred = best_model.predict(X_test_scaled)
     #     y_pred_proba = best_model.predict_proba(X_test_scaled)
