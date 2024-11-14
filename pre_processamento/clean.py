@@ -81,4 +81,4 @@ def execute_clean_games():
 
     clean(df_games)
     
-    df_games.to_csv('data/cleaned_games_data_22-23-24.csv')
+    df_games.to_csv('data/cleaned_games_data_22-23-24.csv', index=False)

@@ -163,16 +163,20 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
         with open(param_file, 'w') as f:
             json.dump(best_params, f)
 
+         # Extrai os parâmetros e a acurácia média do grid_search.cv_results_
+        params_list = grid_search.cv_results_['params']
+        mean_scores = grid_search.cv_results_['mean_test_score']
+        
         model.set_params(**best_params)
     
-    return (model, best_params)
+    return (model, best_params, params_list, mean_scores)
 
-def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, search_best_params, target):
+def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experimentation_plan_data, search_best_params, target):
     # Configuração da validação cruzada
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
     model_names = ["SVR","RandomForest","NeuralNetwork","GBT","LinearRegression","Ridge","Lasso","AdaBoost","ExtraTrees","XGBoost","CatBoost"]
     models = []
-    params = []
+    best_params = []
     models_metrics = []
     best_model_rmse = 10000000
     best_model = RandomForestRegressor()
@@ -186,9 +190,18 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, search_b
     print(f"Regressão para {target}: \n")
     
     for name in model_names:
-        (model, best_params) = execute_model(name,cv, X_train_scaled, X_test_scaled, y_train, y_test,target,search_best_params=search_best_params)
+        (model, model_best_params, params_list, mean_scores) = execute_model(name,cv, X_train_scaled, X_test_scaled, y_train, y_test,target,search_best_params=search_best_params)
         models.append(model)
-        params.append(best_params)
+        best_params.append(model_best_params)
+        
+         # Prepara uma lista de dicionários para o DataFrame
+        for params, score in zip(params_list, mean_scores):
+            experimentation_plan_data.append({
+                "Target": target,
+                "Modelo": name,
+                "Parâmetros": params,
+                "Score da Validação Cruzada (Acurácia ou RMSE)": score
+            })
 
     # Loop para treinar e avaliar os modelos
     for i, model in enumerate(models):
@@ -233,7 +246,7 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, search_b
             "MAE_CV_std": std_mae,
             "R2_CV_mean": mean_r2,
             "R2_CV_std": std_r2,
-            "Best_Parameters": params[i]
+            "Best_Parameters": best_params[i]
         }
         
         # Atualiza métricas se for o melhor modelo até agora
@@ -250,7 +263,7 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, search_b
         
     print(f"Métricas salvas no arquivo {metrics_file}.")
     
-def regresssion(search_best_params, target):
+def regresssion(experimentation_plan_data, search_best_params, target):
     df = pd.read_csv('pre_processamento/games_data_preproc_final.csv').copy()
     
     if target == "handicap":
@@ -278,5 +291,5 @@ def regresssion(search_best_params, target):
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
 
-    predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test,search_best_params, target)
+    predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test,experimentation_plan_data, search_best_params, target)
         

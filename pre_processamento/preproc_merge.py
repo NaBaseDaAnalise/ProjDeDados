@@ -236,6 +236,6 @@ def full_preproc(numero_linhas_anteriores, tipo_media, pca_players):
     plt.figure(figsize=(10, 8))
     sns.heatmap(corr_matrix, annot=True, cmap='coolwarm', fmt=".2f", linewidths=0.5)
 
-    plt.show()
+    # plt.show()
     
     print(df_games.head())

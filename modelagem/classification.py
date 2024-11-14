@@ -250,7 +250,7 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experime
                 "Target": "Resultado da Partida",
                 "Modelo": name,
                 "Parâmetros": params,
-                "Acurácia média (Validação Cruzada)": score
+                "Score da Validação Cruzada (Acurácia ou RMSE)": score
             })
 
     # Loop para treinar e avaliar os modelos
@@ -305,7 +305,7 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experime
         json.dump(best_model_metrics, json_file, indent=4)
     save_metrics(model_names,mean_accuracies,test_accuracies, best_params)
 
-def classification(numero_linhas_anteriores, tipo_media, pca_players, pca_team_stats, search_best_params):
+def classification(experimentation_plan_data, search_best_params):
     df = pd.read_csv('pre_processamento/games_data_preproc_final.csv').copy()
 
     # Remover colunas irrelevantes
@@ -323,20 +323,7 @@ def classification(numero_linhas_anteriores, tipo_media, pca_players, pca_team_s
     X_train_scaled = scaler.fit_transform(X_train)
     X_test_scaled = scaler.transform(X_test)
     
-    experimentation_plan_data = []
     predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experimentation_plan_data, search_best_params)
-    
-     # Converte para DataFrame e salva em CSV
-    experimentation_plan_df = pd.DataFrame(experimentation_plan_data)
-    
-    # Adiciona três novas colunas com valores determinados (espaço para você preencher)
-    experimentation_plan_df["numero_linhas_anteriores"] = numero_linhas_anteriores  # Coloque o valor desejado aqui
-    experimentation_plan_df["tipo_media"] = tipo_media  # Coloque o valor desejado aqui
-    experimentation_plan_df["pca_players"] = pca_players  # Coloque o valor desejado aqui
-    experimentation_plan_df["pca_team_stats"] = pca_team_stats  # Coloque o valor desejado aqui
-
-
-    experimentation_plan_df.to_csv(f"modelagem/plano_experimentacao/classification_plan.csv", index=False)
 
     # if hasattr(best_model, "predict_proba"):
     #     y_pred = best_model.predict(X_test_scaled)

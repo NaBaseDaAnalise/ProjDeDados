@@ -5,10 +5,14 @@ from modelagem.classification import classification
 from modelagem.handicap import regresssion
 from results.results import plot_results
 from itertools import product
+import pandas as pd
 
 # Ex: Número de linhas anteriores, normalização de colunas, PCA do players_data,
 # PCA do games_pre_proc / só das estatísticas dos times, ao invés de utilizar a média dos jogos anteriores, 
 # utilizar uma média ponderada (com pesos diferentes).
+
+
+experimentation_plan_df = pd.DataFrame()
 
 # Valores que você quer testar para cada variável inicial
 linhas_anteriores_values = [3, 5, 7]
@@ -42,8 +46,25 @@ for numero_linhas_anteriores, tipo_media, pca_players in param_combinations:
 
         apply_pca_team_stats(pca_team_stats)
         
-        classification(numero_linhas_anteriores, tipo_media, pca_players, pca_team_stats, search_best_params)
-        regresssion(search_best_params, target="handicap")
-        regresssion(search_best_params, target="total_points")
+        experiment_iteration_data = []
+        
+        classification(experiment_iteration_data, search_best_params)
+        regresssion(experiment_iteration_data, search_best_params, target="handicap")
+        regresssion(experiment_iteration_data, search_best_params, target="total_points")
+         
+        # Converte para DataFrame e salva em CSV
+        iteration_plan_df = pd.DataFrame(experiment_iteration_data)
+        
+        # Adiciona três novas colunas com valores determinados (espaço para você preencher)
+        iteration_plan_df["numero_linhas_anteriores"] = numero_linhas_anteriores  # Coloque o valor desejado aqui
+        iteration_plan_df["tipo_media"] = tipo_media  # Coloque o valor desejado aqui
+        iteration_plan_df["pca_players"] = pca_players  # Coloque o valor desejado aqui
+        iteration_plan_df["pca_team_stats"] = pca_team_stats  # Coloque o valor desejado aqui
+
+         # Append para manter o histórico de cada iteração
+        experimentation_plan_df = pd.concat([experimentation_plan_df, iteration_plan_df], ignore_index=True)
+
+
+        experimentation_plan_df.to_csv(f"modelagem/plano_experimentacao/full_plan.csv", index=False)
 
         # plot_results()  # Descomentar se deseja visualizar os resultados para cada experimento
