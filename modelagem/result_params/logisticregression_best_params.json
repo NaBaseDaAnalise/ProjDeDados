@@ -1,1 +1,1 @@
-{"C": 0.1, "penalty": "l1", "solver": "liblinear"}
+{"C": 0.1, "l1_ratio": 0.9, "penalty": "elasticnet", "solver": "saga"}

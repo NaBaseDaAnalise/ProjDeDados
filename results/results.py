@@ -147,8 +147,8 @@ def show_classification():
     # plt.show()
 
 
-def show_best_model_metrics_regression():
-    with open("modelagem/metrics/handicap_metrics.json", 'r') as f:
+def show_best_model_metrics_regression(target):
+    with open(f"modelagem/metrics/{target}_metrics.json", 'r') as f:
         metrics_data = json.load(f)
     
     # Extração das métricas agregadas (ponderadas)
@@ -182,7 +182,7 @@ def show_best_model_metrics_regression():
 
     # Salva o gráfico em um arquivo
     plt.tight_layout()
-    plt.savefig('results/total_points/overall_metrics.png')
+    plt.savefig(f'results/{target}/overall_metrics.png')
     # plt.show()
     
 def show_regression(target):
@@ -225,7 +225,8 @@ def plot_results():
 
     show_regression("total_points")
     show_gsearch("modelagem/total_points_gsearch/","total_points")
+    show_best_model_metrics_regression("total_points")
     
     show_regression("handicap")
     show_gsearch("modelagem/handicap_gsearch/","handicap")
-    show_best_model_metrics_regression()
+    show_best_model_metrics_regression("handicap")

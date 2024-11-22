@@ -68,8 +68,8 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
             }
         elif model_name == 'SVR':
             param_grid = {
-                'C': [0.1, 1, 10, 100],
-                'kernel': ['linear', 'poly', 'rbf', 'sigmoid'],
+                'C': [0.01, 0.1, 1],
+                'kernel': ['linear', 'poly', 'rbf'],
                 'gamma': ['scale', 'auto']
             }
         elif model_name == 'NeuralNetwork':
@@ -81,68 +81,83 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
                 'max_iter': [300, 500, 1000, 2500],
                 'learning_rate_init': [0.001, 0.01, 0.1]
             }
+            valid_param_grid = []
+            for hidden_layer_sizes in param_grid['hidden_layer_sizes']:
+                for activation in param_grid['activation']:
+                    for learning_rate in param_grid['learning_rate']:
+                        for max_iter in param_grid['max_iter']:
+                            for solver in param_grid['solver']:
+                                if solver == 'sgd':
+                                    for learning_rate_init in [0.001, 0.01]:
+                                        valid_param_grid.append({'hidden_layer_sizes': [hidden_layer_sizes], 'activation': [activation], 'learning_rate': [learning_rate],'max_iter': [max_iter], 'solver': [solver], 'learning_rate_init': [learning_rate_init]})
+                                else:
+                                    for learning_rate_init in param_grid['learning_rate_init']:
+                                        valid_param_grid.append({'hidden_layer_sizes': [hidden_layer_sizes], 'activation': [activation], 'learning_rate': [learning_rate],'max_iter': [max_iter], 'solver': [solver], 'learning_rate_init': [learning_rate_init]})
+            param_grid = valid_param_grid
+
+
+
         elif model_name == 'RandomForest':
             param_grid = {
-                'n_estimators': [100, 200, 300],
-                'max_depth': [7, 15, None],
-                'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 2, 4],
-                'bootstrap': [True, False]
+                'n_estimators': [100, 300],
+                'max_depth': [7, 11, 14],
+                'min_samples_split': [10, 20],
+                'min_samples_leaf': [2, 4, 8],
+                'bootstrap': [True]
             }
         elif model_name == 'GBT':
             param_grid = {
-                'n_estimators': [100, 200, 300],
-                'learning_rate': [0.01, 0.1, 0.2],
-                'max_depth': [3, 4, 5],
-                'subsample': [0.8, 1.0],
+                'n_estimators': [50, 100],
+                'learning_rate': [0.001, 0.01, 0.1],
+                'max_depth': [2, 3],
+                'subsample': [1.0],
                 'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 2, 4]
+                'min_samples_leaf': [1]
             }
         elif model_name == 'LinearRegression':
             param_grid = {
                 'fit_intercept': [True, False],      # Se deve calcular o intercepto ou não
-                'copy_X': [True, False],             # Se deve copiar os dados de entrada ou sobrescrevê-los
             }
         elif model_name == 'Ridge':
             param_grid = {
-                'alpha': [0.01, 0.1, 1, 10],
+                'alpha': [1, 10, 100],
                 'solver': ['auto', 'svd', 'cholesky', 'lsqr']
             }
         elif model_name == 'Lasso':
             param_grid = {
                 'alpha': [0.01, 0.1, 1, 10],
-                'max_iter': [1000, 2000, 5000]
+                'max_iter': [100, 400, 800]
             }
         elif model_name == 'AdaBoost':
             param_grid = {
-                'n_estimators': [50, 100, 200],
-                'learning_rate': [0.01, 0.1, 0.5, 1.0]
+                'n_estimators': [70, 100, 200],
+                'learning_rate': [1.0, 2.0, 5.0]
             }
         elif model_name == 'ExtraTrees':
             param_grid = {
-                'n_estimators': [100, 200, 300],
-                'max_depth': [7, 15, None],
-                'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 2, 4],
+                'n_estimators': [300, 500],
+                'max_depth': [10, 15, None],
+                'min_samples_split': [7, 10],
+                'min_samples_leaf': [4, 7],
                 'bootstrap': [True, False]
             }
         elif model_name == 'XGBoost':
             param_grid = {
                 'n_estimators': [100, 200, 300],
-                'learning_rate': [0.01, 0.1, 0.2],
-                'max_depth': [3, 4, 5],
-                'subsample': [0.8, 1.0],
-                'colsample_bytree': [0.8, 1.0]
+                'learning_rate': [0.01, 0.1, 0,15],
+                'max_depth': [2, 3],
+                'subsample': [1.0],
+                'colsample_bytree': [0.8]
             }
         elif model_name == 'CatBoost':
             param_grid = {
-                'iterations': [500, 1000],
-                'learning_rate': [0.01, 0.1],
-                'depth': [4, 6, 10],
-                'l2_leaf_reg': [1, 3, 5, 7]
+                'iterations': [300, 500],
+                'learning_rate': [0.001, 0.01],
+                'depth': [3, 4, 6],
+                'l2_leaf_reg': [3, 7]
             }
 
-        grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=cv, scoring='neg_mean_squared_error', n_jobs=-1, verbose=2)
+        grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=cv, scoring='neg_root_mean_squared_error', n_jobs=-1, verbose=2)
         grid_search.fit(X_train_scaled, y_train)
         best_params = grid_search.best_params_
 
@@ -174,7 +189,7 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
 def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experimentation_plan_data, search_best_params, target):
     # Configuração da validação cruzada
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    model_names = ["SVR","RandomForest","NeuralNetwork","GBT","LinearRegression","Ridge","Lasso","AdaBoost","ExtraTrees","XGBoost","CatBoost"]
+    model_names = ["KNN","SVR","RandomForest","NeuralNetwork","GBT","LinearRegression","Ridge","Lasso","AdaBoost","ExtraTrees","XGBoost","CatBoost"]
     models = []
     best_params = []
     models_metrics = []
@@ -264,7 +279,7 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experime
     print(f"Métricas salvas no arquivo {metrics_file}.")
     
 def regresssion(experimentation_plan_data, search_best_params, target):
-    df = pd.read_csv('pre_processamento/games_data_preproc_final.csv').copy()
+    df = pd.read_csv('pre_processamento/games_data_preproc.csv').copy()
     
     if target == "handicap":
         df_handicap = calculate_handicap(df)

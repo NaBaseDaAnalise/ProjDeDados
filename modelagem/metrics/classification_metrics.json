@@ -1,36 +1,46 @@
 [
     {
         "Model": "RandomForest",
-        "Mean_CV_Accuracy": 0.6486252317299248,
-        "Test_Accuracy": 0.6400336417157275,
+        "Mean_CV_Accuracy": 0.6544111620645916,
+        "Test_Accuracy": 0.6568544995794785,
         "Best_Parameters": {
             "bootstrap": true,
             "max_depth": null,
-            "min_samples_leaf": 4,
+            "min_samples_leaf": 2,
             "min_samples_split": 10,
-            "n_estimators": 200
+            "n_estimators": 500
         }
     },
     {
         "Model": "KNN",
-        "Mean_CV_Accuracy": 0.6017419585650632,
-        "Test_Accuracy": 0.5929352396972245,
+        "Mean_CV_Accuracy": 0.5984935115621036,
+        "Test_Accuracy": 0.5887300252312868,
         "Best_Parameters": {
             "metric": "manhattan",
-            "n_neighbors": 9,
+            "n_neighbors": 15,
             "weights": "uniform"
         }
     },
     {
+        "Model": "SVM",
+        "Mean_CV_Accuracy": 0.6259017139883566,
+        "Test_Accuracy": 0.6349873843566022,
+        "Best_Parameters": {
+            "C": 1,
+            "gamma": "scale",
+            "kernel": "linear"
+        }
+    },
+    {
         "Model": "NeuralNetwork",
-        "Mean_CV_Accuracy": 0.6370904478485706,
-        "Test_Accuracy": 0.6551724137931034,
+        "Mean_CV_Accuracy": 0.6320336943441636,
+        "Test_Accuracy": 0.6442388561816653,
         "Best_Parameters": {
             "activation": "relu",
             "hidden_layer_sizes": [
                 100
             ],
-            "learning_rate": "constant",
+            "learning_rate": "adaptive",
             "learning_rate_init": 0.001,
             "max_iter": 500,
             "solver": "sgd"
@@ -38,68 +48,69 @@
     },
     {
         "Model": "GBT",
-        "Mean_CV_Accuracy": 0.6706312811005952,
-        "Test_Accuracy": 0.6627417998317914,
+        "Mean_CV_Accuracy": 0.6590990990990991,
+        "Test_Accuracy": 0.6425567703952901,
         "Best_Parameters": {
-            "learning_rate": 0.1,
-            "max_depth": 3,
-            "min_samples_leaf": 2,
-            "min_samples_split": 2,
+            "learning_rate": 0.01,
+            "max_depth": 4,
+            "min_samples_leaf": 1,
+            "min_samples_split": 5,
             "n_estimators": 100,
             "subsample": 1.0
         }
     },
     {
         "Model": "LogisticRegression",
-        "Mean_CV_Accuracy": 0.6356444531173773,
-        "Test_Accuracy": 0.6459209419680404,
+        "Mean_CV_Accuracy": 0.6385273360002601,
+        "Test_Accuracy": 0.6450798990748529,
         "Best_Parameters": {
             "C": 0.1,
-            "penalty": "l1",
-            "solver": "liblinear"
+            "l1_ratio": 0.9,
+            "penalty": "elasticnet",
+            "solver": "saga"
         }
     },
     {
         "Model": "AdaBoost",
-        "Mean_CV_Accuracy": 0.6626955475330927,
-        "Test_Accuracy": 0.6408746846089151,
+        "Mean_CV_Accuracy": 0.6623416918723777,
+        "Test_Accuracy": 0.6602186711522288,
         "Best_Parameters": {
             "learning_rate": 1.0,
-            "n_estimators": 200
+            "n_estimators": 300
         }
     },
     {
         "Model": "ExtraTrees",
-        "Mean_CV_Accuracy": 0.6356496568770937,
-        "Test_Accuracy": 0.6257359125315392,
+        "Mean_CV_Accuracy": 0.6435853904445963,
+        "Test_Accuracy": 0.6467619848612279,
         "Best_Parameters": {
             "bootstrap": false,
             "max_depth": 15,
             "min_samples_leaf": 1,
-            "min_samples_split": 5,
-            "n_estimators": 100
+            "min_samples_split": 9,
+            "n_estimators": 200
         }
     },
     {
         "Model": "XGBoost",
-        "Mean_CV_Accuracy": 0.6702748235600222,
-        "Test_Accuracy": 0.6408746846089151,
+        "Mean_CV_Accuracy": 0.6673899892672456,
+        "Test_Accuracy": 0.6703111858704794,
         "Best_Parameters": {
-            "colsample_bytree": 1.0,
-            "learning_rate": 0.01,
-            "max_depth": 5,
-            "n_estimators": 100,
-            "subsample": 0.8
+            "colsample_bytree": 0.8,
+            "learning_rate": 0.1,
+            "max_depth": 2,
+            "n_estimators": 200,
+            "subsample": 1.0
         }
     },
     {
         "Model": "CatBoost",
-        "Mean_CV_Accuracy": 0.6699112108498391,
-        "Test_Accuracy": 0.6534903280067283,
+        "Mean_CV_Accuracy": 0.6634162682538134,
+        "Test_Accuracy": 0.6719932716568545,
         "Best_Parameters": {
-            "depth": 4,
-            "iterations": 1000,
-            "l2_leaf_reg": 5,
+            "depth": 6,
+            "iterations": 250,
+            "l2_leaf_reg": 7,
             "learning_rate": 0.01
         }
     }

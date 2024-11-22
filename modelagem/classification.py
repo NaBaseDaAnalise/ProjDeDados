@@ -46,7 +46,7 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
     else:
         if model_name == 'KNN':
             param_grid = {
-                'n_neighbors': [3, 5, 7, 9],
+                'n_neighbors': [9, 13, 15, 20],
                 'weights': ['uniform', 'distance'],
                 'metric': ['euclidean', 'manhattan']
             }
@@ -58,37 +58,37 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
             }
         elif model_name == 'NeuralNetwork':
             param_grid = {
-                'hidden_layer_sizes': [(50,), (100,), (100, 50)],
-                'activation': ['relu', 'tanh'],
-                'solver': ['adam', 'sgd'],
-                'learning_rate': ['constant', 'adaptive'],
-                'max_iter': [300, 500, 1000, 2500],
-                'learning_rate_init': [0.001, 0.01, 0.1]
+                'hidden_layer_sizes': [(50,), (100,)],
+                'activation': ['relu'],
+                'solver': ['sgd'],
+                'learning_rate': ['adaptive'],
+                'max_iter': [300, 500, 1000],
+                'learning_rate_init': [0.001, 0.01]
             }
         elif model_name == 'RandomForest':
             param_grid = {
-                'n_estimators': [100, 200, 300],
-                'max_depth': [7, 15, None],
-                'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 2, 4],
-                'bootstrap': [True, False]
+                'n_estimators': [300, 500],
+                'max_depth': [15, 20, None],
+                'min_samples_split': [5, 10, 15],
+                'min_samples_leaf': [2, 4, 8],
+                'bootstrap': [True]
             }
         elif model_name == 'GBT':
             param_grid = {
-                'n_estimators': [100, 200, 300],
-                'learning_rate': [0.01, 0.1, 0.2],
-                'max_depth': [3, 4, 5],
-                'subsample': [0.8, 1.0],
-                'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 2, 4]
+                'n_estimators': [50, 100],
+                'learning_rate': [0.01],
+                'max_depth': [3, 4, 10, None],
+                'subsample': [1.0],
+                'min_samples_split': [5],
+                'min_samples_leaf': [1, 2]
             }
         elif model_name == 'LogisticRegression':
             # Definindo os parâmetros que serão utilizados
             param_grid = {
-                'penalty': ['l1', 'l2', 'elasticnet', None],
-                'C': [0.01, 0.1, 1, 10],
-                'solver': ['liblinear', 'saga', 'newton-cg', 'sag'],
-                'l1_ratio': [0.1, 0.5, 0.9]
+                'penalty': ['elasticnet', None],
+                'C': [0.1, 1],
+                'solver': ['saga'],
+                'l1_ratio': [0.3, 0.5, 0.7]
             }
 
             # Filtrando combinações válidas
@@ -133,31 +133,31 @@ def execute_model(model_name, cv, X_train_scaled, X_test_scaled, y_train, y_test
 
         elif model_name == 'AdaBoost':
             param_grid = {
-                'n_estimators': [50, 100, 200],
-                'learning_rate': [0.01, 0.1, 0.5, 1.0]
+                'n_estimators': [100, 200, 300],
+                'learning_rate': [0.5, 1.0,1.5]
             }
         elif model_name == 'ExtraTrees':
             param_grid = {
                 'n_estimators': [100, 200, 300],
-                'max_depth': [7, 15, None],
-                'min_samples_split': [2, 5, 10],
-                'min_samples_leaf': [1, 2, 4],
-                'bootstrap': [True, False]
+                'max_depth': [13,15, 17, None],
+                'min_samples_split': [4, 5, 9],
+                'min_samples_leaf': [1],
+                'bootstrap': [False]
             }
         elif model_name == 'XGBoost':
             param_grid = {
-                'n_estimators': [100, 200, 300],
-                'learning_rate': [0.01, 0.1, 0.2],
-                'max_depth': [3, 4, 5],
-                'subsample': [0.8, 1.0],
-                'colsample_bytree': [0.8, 1.0]
+                'n_estimators': [50, 100, 200],
+                'learning_rate': [0.01, 0.1],
+                'max_depth': [2, 3, 7],
+                'subsample': [1.0],
+                'colsample_bytree': [0.6, 0.8]
             }
         elif model_name == 'CatBoost':
             param_grid = {
-                'iterations': [500, 1000],
-                'learning_rate': [0.01, 0.1],
-                'depth': [4, 6, 10],
-                'l2_leaf_reg': [1, 3, 5, 7]
+                'iterations': [250, 500],
+                'learning_rate': [0.01],
+                'depth': [2, 4, 6],
+                'l2_leaf_reg': [5, 7]
             }
 
         grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=cv, scoring='accuracy', n_jobs=-1, verbose=2)
@@ -227,7 +227,7 @@ def save_metrics(model_names, mean_accuracies, test_accuracies, best_params):
 def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experimentation_plan_data, search_best_params):
     # Configuração da validação cruzada
     cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-    model_names = ["RandomForest","KNN","NeuralNetwork","GBT","LogisticRegression","AdaBoost","ExtraTrees","XGBoost","CatBoost"]
+    model_names = ["RandomForest","KNN","SVM","NeuralNetwork","GBT","LogisticRegression","AdaBoost","ExtraTrees","XGBoost","CatBoost"]
     models = []
     best_params = []
     mean_accuracies = []
@@ -306,7 +306,7 @@ def predict_and_metrics(X_train_scaled, X_test_scaled, y_train, y_test, experime
     save_metrics(model_names,mean_accuracies,test_accuracies, best_params)
 
 def classification(experimentation_plan_data, search_best_params):
-    df = pd.read_csv('pre_processamento/games_data_preproc_final.csv').copy()
+    df = pd.read_csv('pre_processamento/games_data_preproc.csv').copy()
 
     # Remover colunas irrelevantes
     df.drop(["Tm", "Opp"], axis=1, inplace=True)
