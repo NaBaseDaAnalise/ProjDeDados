@@ -18,6 +18,8 @@ linhas_anteriores_values = [3, 5, 7]
 tipo_media_values = ['simples','linear', 'quadratica']
 pca_players_values = [True, False]
 pca_team_stats_values = [0, 1, 2]
+
+
 search_best_params = True
 use_previous_preproc = True
 
@@ -56,8 +58,8 @@ for numero_linhas_anteriores, tipo_media, pca_players in param_combinations:
         experiment_iteration_data = []
         
         # classification(experiment_iteration_data, search_best_params)
-        regresssion(experiment_iteration_data, search_best_params, target="handicap")
-        # regresssion(experiment_iteration_data, search_best_params, target="total_points")
+        # regresssion(experiment_iteration_data, search_best_params, target="handicap")
+        regresssion(experiment_iteration_data, search_best_params, target="total_points")
          
         # Converte para DataFrame e salva em CSV
         iteration_plan_df = pd.DataFrame(experiment_iteration_data)
@@ -72,6 +74,6 @@ for numero_linhas_anteriores, tipo_media, pca_players in param_combinations:
         experimentation_plan_df = pd.concat([experimentation_plan_df, iteration_plan_df], ignore_index=True)
 
 
-        experimentation_plan_df.to_csv(f"modelagem/plano_experimentacao/handicap_plan.csv", index=False)
+        experimentation_plan_df.to_csv(f"modelagem/plano_experimentacao/total_points_plan.csv", index=False)
 
         # plot_results()  # Descomentar se deseja visualizar os resultados para cada experimento
