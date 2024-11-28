@@ -10,9 +10,9 @@ def selecionarOdd(casaDeAposta1, casaDeAposta2, casaDeAposta3):
 
 def intervaloVale (intervalo):
     if intervalo: #entre positivo e negativo 
+        return 
         
-
-def calculoDeRetornoEsperado(, risco, valor_maximo_aposta=100): 
+def calculoDeRetornoEsperado(acuracia, risco, valor_maximo_aposta=100): 
     retorno = (acuracia) - risco
     
     if retorno <= 0:
