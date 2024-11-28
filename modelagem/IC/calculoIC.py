@@ -16,6 +16,7 @@ files = [
 ]
 
 # Configurações
+###AJEItAR CONFIGURACOES DA VALDAÇÃO CRUZADA?? - HANNAH
 n_folds = 5  # Número de folds na validação cruzada
 Z = 1.96  # Valor crítico para 95% de confiança
 
